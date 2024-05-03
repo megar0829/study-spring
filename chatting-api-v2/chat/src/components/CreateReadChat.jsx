@@ -1,81 +1,74 @@
-import {useRef, useState} from "react";
-import {Stomp} from "@stomp/stompjs";
-import * as SockJs from "sockjs-client";
-import * as StompJs from "@stomp/stompjs";
+import {useEffect, useState} from "react";
+import axios from "axios";
+import {Link} from "react-router-dom";
 
-export default function CreateReadChat() {
-
-    const client = useRef({});
-    const [chat, setChat] = useState("");
-    const [chatList, setChatList] = useState([]);
-    // const socket = new SockJs("http//localhost:8080/ws-stomp")
+export default function CreateReadChat({changeId}) {
 
 
-    const connect = () => {
-        client.current = new StompJs.Client({
-            brokerURL: "ws://localhost:8080/ws-stomp",
-            onConnect: () => {
-                console.log("success");
-                subscribe();
-            }
-        })
-        client.current.activate();
-    };
+  const [roomName, setRoomName] = useState("");
+  const [chatRoomList, setChatRoomList] = useState([]);
 
-    const disconnect = () => {
-        client.current.deactivate();
-        console.log('채팅이 종료되었습니다.')
-    }
-    const subscribe = () => {
-        client.current.subscribe(`/api/sub`, (body) => {
-            setChatList((_chat_list) => [
-                ..._chat_list, JSON.parse(body.body)
-            ]);
-        })
+  useEffect(() => {
+    getRooms();
+  }, []);
+
+    const getRooms = () => {
+        axios.get("/api/chat/rooms")
+            .then((res) => {
+                setChatRoomList(res.data);
+            })
     }
 
-    const publish = (chat) => {
-        if (!client.current.connected) {
+    const createRoom = (name) => {
+        if (name == "") {
+            alert("방 제목을 입력해 주세요");
             return;
         }
 
-        client.current.publish({
-            destination: `/pub/chat`,
-            body: JSON.stringify({
-                roomId: 1,
-                message: chat,
-            }),
-        });
+        const param = new URLSearchParams();
+        param.append("name", name);
 
-        setChat("");
+        axios.post("/api/chat/room", param)
+            .then((res) => {
+                alert(res.data.name + "방 개설에 성공하였습니다.");
+                setRoomName("");
+                getRooms();
+            })
+            .catch((err) => {
+                alert("채팅방 개설에 실패하였습니다.");
+            })
     }
-
-    // 채팅 입력 시 Chat 값 변경
-    const handleChange = (event) => {
-        setChat(event.target.value);
-    };
-
-    // 보내기 버튼 눌렀을 때 publish
-    const handleSubmit = (event, chat) => {
-        event.preventDefault();
-
-        publish(chat)
-    }
-
 
     return (
-        <div>
-            <div className={"chat-list"}>{chatList}</div>
-            <button onClick={() => connect()}>Connect</button>
-            <button onClick={() => disconnect()}>Disconnect</button>
-
-            <form onSubmit={(event) => handleSubmit(event, chat)}>
-                <div>
-                    <input type={"text"} name={"chatInput"} onChange={handleChange} value={chat} />
+        <>
+            <div className="row">
+                <div className="col-md-12">
+                    <h3>채팅방 리스트</h3>
                 </div>
+            </div>
 
-                <input type={"submit"} value={"의견 보내기"} />
-            </form>
-        </div>
+            <div className="input-group">
+                <div className="input-group-prepend">
+                    <label className="input-group-text">방제목</label>
+                </div>
+                <input onChange={(e) => setRoomName(e.target.value)} type="text" className="form-control" value={roomName} />
+                <div className="input-group-append">
+                    <button onClick={() => createRoom(roomName)} className="btn btn-primary" type="button">채팅방 개설</button>
+                </div>
+            </div>
+
+            <ul className="list-group">
+                {chatRoomList.length > 0 && chatRoomList.map((chatRoom, index) => {
+                    return (
+                        <li
+                            key={index}
+                            className="list-group-item list-group-item-action"
+                        >
+                            <Link onClick={() => changeId(chatRoom.id)} to={`/${index}`}>{chatRoom.name}</Link>
+                        </li>
+                    );
+                })}
+            </ul>
+        </>
     );
 }
