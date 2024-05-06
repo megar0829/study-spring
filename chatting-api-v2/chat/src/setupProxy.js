@@ -10,7 +10,7 @@ module.exports = (app) => {
     );
 
     app.use(
-        "/ws-stomp",
+        "/ws",
         createProxyMiddleware({
             target: "http//localhost:8080/ws-stomp",
             ws: true

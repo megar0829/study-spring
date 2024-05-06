@@ -2,7 +2,6 @@ import { useParams } from "react-router-dom";
 import {useEffect, useState} from "react";
 import axios from "axios";
 import * as SockJs from "sockjs-client";
-import * as StompJS from "@stomp/stompjs";
 import {Stomp} from "@stomp/stompjs";
 
 export default function RoomDetail (props) {
@@ -36,7 +35,7 @@ export default function RoomDetail (props) {
   };
 
   const sendMessage = () => {
-    ws.send("/api/pub/chat/message", {}, JSON.stringify({
+    ws.send("/api/ws-stomp/pub/chat/message", {}, JSON.stringify({
       messageType: "TALK",
       roomId: id,
       sender: "나",
@@ -52,11 +51,11 @@ export default function RoomDetail (props) {
 
   const connect = async () => {
     ws.connect({}, function (frame) {
-      ws.subscribe("/api/sub/chat/room" + id, function (message) {
+      ws.subscribe("/api/ws-stomp/sub/chat/room" + id, function (message) {
         const data = JSON.parse(message);
         getMessage(data);
       });
-      ws.send("/api/pub/chat/message", {}, JSON.stringify({
+      ws.send("/api/ws-stomp/pub/chat/message", {}, JSON.stringify({
         messageType: "ENTER",
         roomId: id,
         sender: "나"
